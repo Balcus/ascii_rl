@@ -33,3 +33,9 @@ pub struct RandomMover {
 
 #[derive(Component)]
 pub struct Player {}
+
+#[derive(Component)]
+pub struct FieldOfView {
+    pub visibile_tiles: Vec<rltk::Point>,
+    pub range: i32
+}

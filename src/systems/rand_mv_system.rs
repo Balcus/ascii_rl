@@ -1,11 +1,13 @@
 use rltk::RandomNumberGenerator;
 use specs::{Join, System, WriteStorage};
 
-use crate::components::{Direction, Position, RandomMover};
+use crate::{WINDOW_SIZE, components::{Direction, Position, RandomMover}};
 
+#[allow(dead_code)]
 pub struct RandomMovementSystem {}
 
 impl RandomMovementSystem {
+    #[allow(dead_code)]
     fn choose_direction(current_direction: &mut Direction, rng: &mut RandomNumberGenerator) {
         let previous_direciton = current_direction.clone();
         *current_direction = match rng.range(0, 9) {
@@ -25,8 +27,8 @@ impl RandomMovementSystem {
             Direction::Back => pos.y -= 1,
         }
 
-        pos.x = pos.x.rem_euclid(80);
-        pos.y = pos.y.rem_euclid(50);
+        pos.x = pos.x.rem_euclid(WINDOW_SIZE.0 as i32);
+        pos.y = pos.y.rem_euclid(WINDOW_SIZE.1 as i32);
     }
 }
 

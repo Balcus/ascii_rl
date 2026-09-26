@@ -1,13 +1,17 @@
 mod components;
 mod map;
 mod player;
+mod rect;
 mod systems;
 
+// w, h
+const WINDOW_SIZE: (usize, usize) = (80, 50);
+
 use crate::{
-    components::{LeftMover, Player, Position, RandomMover, Renderable},
-    map::{TileType, draw_map, generate_map},
-    player::{PLAYER_START_POS, handle_player_input},
-    systems::rand_mv_system::RandomMovementSystem,
+    components::{FieldOfView, LeftMover, Player, Position, RandomMover, Renderable},
+    map::{Map, TileType},
+    player::handle_player_input,
+    systems::visibility_system::VisibilitySystem,
 };
 use rltk::{GameState, RGB, Rltk};
 use specs::prelude::*;
@@ -18,8 +22,10 @@ struct State {
 
 impl State {
     fn run_systems(&mut self) {
-        let mut rms = RandomMovementSystem {};
-        rms.run_now(&self.ecs);
+        // let mut rms = RandomMovementSystem {};
+        // rms.run_now(&self.ecs);
+        let mut vs = VisibilitySystem {};
+        vs.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -29,8 +35,8 @@ impl GameState for State {
         ctx.cls();
         self.run_systems();
         handle_player_input(self, ctx);
-        let map = self.ecs.fetch::<Vec<TileType>>();
-        draw_map(&map, ctx);
+        let map = self.ecs.fetch::<Map>();
+        map.draw(ctx);
 
         let positions = self.ecs.read_storage::<Position>();
         let rendarables = self.ecs.read_storage::<Renderable>();
@@ -43,7 +49,9 @@ impl GameState for State {
 
 fn main() -> rltk::BError {
     use rltk::RltkBuilder;
-    let context = RltkBuilder::simple80x50().with_title("RL").build()?;
+    let context = RltkBuilder::simple(WINDOW_SIZE.0, WINDOW_SIZE.1)?
+        .with_title("RL")
+        .build()?;
 
     let mut gs = State { ecs: World::new() };
 
@@ -52,38 +60,26 @@ fn main() -> rltk::BError {
     gs.ecs.register::<LeftMover>();
     gs.ecs.register::<RandomMover>();
     gs.ecs.register::<Player>();
-    gs.ecs.insert(generate_map());
+    gs.ecs.register::<FieldOfView>();
+
+    let map = Map::generate_room_map();
+    let (x, y) = map.rooms[0].center();
+    gs.ecs.insert(map);
 
     gs.ecs
         .create_entity()
-        .with(PLAYER_START_POS)
+        .with(Position { x, y })
         .with(Renderable {
             glyph: rltk::to_cp437('@'),
             fg: RGB::named(rltk::YELLOW),
             bg: RGB::named(rltk::BLACK),
         })
         .with(Player {})
+        .with(FieldOfView {
+            visibile_tiles: Vec::new(),
+            range: 8,
+        })
         .build();
-
-    // Generate 10 random entities
-    // for _ in 1..10 {
-    //     let mut rng = RandomNumberGenerator::new();
-    //     let x = rng.range(0, 80);
-    //     let y = rng.range(0, 50);
-
-    //     gs.ecs
-    //         .create_entity()
-    //         .with(Position { x, y })
-    //         .with(Renderable {
-    //             glyph: rltk::to_cp437('*'),
-    //             fg: RGB::named(rltk::RED),
-    //             bg: RGB::named(rltk::BLACK),
-    //         })
-    //         .with(RandomMover {
-    //             direction: Direction::Front,
-    //         })
-    //         .build();
-    // }
 
     rltk::main_loop(context, gs)
 }
