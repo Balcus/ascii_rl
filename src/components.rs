@@ -37,5 +37,6 @@ pub struct Player {}
 #[derive(Component)]
 pub struct FieldOfView {
     pub visibile_tiles: Vec<rltk::Point>,
-    pub range: i32
+    pub range: i32,
+    pub dirty: bool,
 }

@@ -35,23 +35,27 @@ impl GameState for State {
         ctx.cls();
         self.run_systems();
         handle_player_input(self, ctx);
-        let map = self.ecs.fetch::<Map>();
-        map.draw(ctx);
+        Map::draw_map(&self.ecs, ctx);
 
         let positions = self.ecs.read_storage::<Position>();
         let rendarables = self.ecs.read_storage::<Renderable>();
+        let map = self.ecs.fetch::<Map>();
 
         for (pos, r) in (&positions, &rendarables).join() {
-            ctx.set(pos.x, pos.y, r.fg, r.bg, r.glyph);
+            let idx = Map::xy_idx(pos.x, pos.y);
+            if map.visible_tiles[idx] {
+                ctx.set(pos.x, pos.y, r.fg, r.bg, r.glyph);
+            }
         }
     }
 }
 
 fn main() -> rltk::BError {
     use rltk::RltkBuilder;
-    let context = RltkBuilder::simple(WINDOW_SIZE.0, WINDOW_SIZE.1)?
+    let mut context = RltkBuilder::simple(WINDOW_SIZE.0, WINDOW_SIZE.1)?
         .with_title("RL")
         .build()?;
+    context.with_post_scanlines(true);
 
     let mut gs = State { ecs: World::new() };
 
@@ -63,6 +67,25 @@ fn main() -> rltk::BError {
     gs.ecs.register::<FieldOfView>();
 
     let map = Map::generate_room_map();
+
+    for room in map.rooms.iter().skip(1) {
+        let (x, y) = room.center();
+        gs.ecs
+        .create_entity()
+        .with(Position {x, y})
+        .with(Renderable {
+            glyph: rltk::to_cp437('J'),
+            fg: RGB::named(rltk::RED),
+            bg: RGB::named(rltk::BLACK),
+        })
+        // .with(FieldOfView {
+        //     visibile_tiles: Vec::new(),
+        //     range: 8,
+        //     dirty: true
+        // })
+        .build();
+    }
+
     let (x, y) = map.rooms[0].center();
     gs.ecs.insert(map);
 
@@ -71,13 +94,14 @@ fn main() -> rltk::BError {
         .with(Position { x, y })
         .with(Renderable {
             glyph: rltk::to_cp437('@'),
-            fg: RGB::named(rltk::YELLOW),
+            fg: RGB::named(rltk::GREEN),
             bg: RGB::named(rltk::BLACK),
         })
         .with(Player {})
         .with(FieldOfView {
             visibile_tiles: Vec::new(),
             range: 8,
+            dirty: true,
         })
         .build();
 
