@@ -21,7 +21,7 @@ impl<'a> System<'a> for VisibilitySystem {
         let (mut map, entities, mut fov, pos, player) = data;
         for (entity, fov, pos) in (&entities, &mut fov, &pos).join() {
             if !fov.dirty {
-                return;
+                continue;
             }
 
             fov.visibile_tiles.clear();

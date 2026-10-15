@@ -1,7 +1,9 @@
+use crate::{
+    WINDOW_SIZE,
+    components::{Direction, Position, RandomMover},
+};
 use rltk::RandomNumberGenerator;
 use specs::{Join, System, WriteStorage};
-
-use crate::{WINDOW_SIZE, components::{Direction, Position, RandomMover}};
 
 #[allow(dead_code)]
 pub struct RandomMovementSystem {}
