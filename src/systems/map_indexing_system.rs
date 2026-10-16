@@ -1,4 +1,4 @@
-use specs::{Join, ReadStorage, System, WriteExpect};
+use specs::{Entities, Join, ReadStorage, System, WriteExpect};
 
 use crate::{components::{BlocksTile, Position}, map::Map};
 
@@ -8,16 +8,23 @@ impl <'a> System<'a> for MapIndexingSystem {
     type SystemData = (
         WriteExpect<'a, Map>,
         ReadStorage<'a, Position>,
-        ReadStorage<'a, BlocksTile>
+        ReadStorage<'a, BlocksTile>,
+        Entities<'a>
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (mut map, position, blockers) = data;
+        let (mut map, position, blockers, entities) = data;
         
         map.populate_blocked();
-        for (pos, _blocker) in (&position, &blockers).join() {
+        map.clear_content_index();
+        for (entity, pos) in (&entities, &position).join() {
             let idx = Map::xy_idx(pos.x, pos.y);
-            map.blocked[idx] = true;
+            let _p: Option<&BlocksTile> = blockers.get(entity);
+            if let Some(_p) = _p {
+                map.blocked[idx] = true;
+            }
+
+            map.tile_content[idx].push(entity);
         }
     }
 }

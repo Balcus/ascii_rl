@@ -9,11 +9,8 @@ const WINDOW_SIZE: (usize, usize) = (80, 50);
 
 use crate::{
     components::{
-        BlocksTile, Enemy, FieldOfView, LeftMover, Player, Position, RandomMover, Renderable,
-    },
-    map::Map,
-    player::handle_player_input,
-    systems::{
+        BlocksTile, CombatStats, Enemy, FieldOfView, LeftMover, Player, Position, RandomMover, Renderable, SufferDamage, WantsToMelee,
+    }, map::Map, player::handle_player_input, systems::{
         enemy_ai_system::EnemyAI, map_indexing_system::MapIndexingSystem,
         visibility_system::VisibilitySystem,
     },
@@ -93,6 +90,9 @@ fn main() -> rltk::BError {
     gs.ecs.register::<FieldOfView>();
     gs.ecs.register::<Enemy>();
     gs.ecs.register::<BlocksTile>();
+    gs.ecs.register::<CombatStats>();
+    gs.ecs.register::<WantsToMelee>();
+    gs.ecs.register::<SufferDamage>();
 
     let map = Map::generate_room_map();
 
@@ -113,6 +113,12 @@ fn main() -> rltk::BError {
             })
             .with(Enemy {})
             .with(BlocksTile {})
+            .with(CombatStats {
+                max_hp: 10,
+                hp: 10,
+                defense: 1,
+                power: 2
+            })
             .build();
     }
 
@@ -136,6 +142,12 @@ fn main() -> rltk::BError {
             visibile_tiles: Vec::new(),
             range: 8,
             dirty: true,
+        })
+        .with(CombatStats {
+            max_hp: 30,
+            hp: 30,
+            defense: 3,
+            power: 3
         })
         .build();
 

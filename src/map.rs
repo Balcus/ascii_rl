@@ -1,6 +1,6 @@
 use crate::{WINDOW_SIZE, rect::Rectangle};
 use rltk::{Algorithm2D, BaseMap, Point, RGB, RandomNumberGenerator, Rltk};
-use specs::World;
+use specs::{Entity, World};
 use std::{
     cmp::{max, min},
     vec,
@@ -20,7 +20,8 @@ pub struct Map {
     pub height: i32,
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
-    pub blocked: Vec<bool>
+    pub blocked: Vec<bool>,
+    pub tile_content: Vec<Vec<Entity>>
 }
 
 impl Map {
@@ -36,7 +37,8 @@ impl Map {
             height: WINDOW_SIZE.1 as i32,
             revealed_tiles: vec![false; WINDOW_SIZE.0 * WINDOW_SIZE.1],
             visible_tiles: vec![false; WINDOW_SIZE.0 * WINDOW_SIZE.1],
-            blocked: vec![false; WINDOW_SIZE.0 * WINDOW_SIZE.1]
+            blocked: vec![false; WINDOW_SIZE.0 * WINDOW_SIZE.1],
+            tile_content: vec![Vec::new(); WINDOW_SIZE.0 * WINDOW_SIZE.1]
         };
 
         const MAX_ROOMS: i32 = 30;
@@ -164,6 +166,12 @@ impl Map {
         let idx = Self::xy_idx(x, y);
         !self.blocked[idx]
     }
+
+    pub fn clear_content_index(&mut self) {
+        for content in &mut self.tile_content {
+            content.clear();
+        }
+    }
 }
 impl BaseMap for Map {
     fn is_opaque(&self, idx: usize) -> bool {
@@ -203,6 +211,20 @@ impl BaseMap for Map {
             exits.push((idx - w, 1.0))
         };
         if self.is_exit_valid(x, y + 1) {
+            exits.push((idx + w, 1.0))
+        };
+
+        // diagnoal movement
+        if self.is_exit_valid(x - 1, y - 1) {
+            exits.push((idx - 1, 1.0))
+        };
+        if self.is_exit_valid(x + 1, y + 1) {
+            exits.push((idx + 1, 1.0))
+        };
+        if self.is_exit_valid(x + 1, y - 1) {
+            exits.push((idx - w, 1.0))
+        };
+        if self.is_exit_valid(x - 1, y + 1) {
             exits.push((idx + w, 1.0))
         };
 
