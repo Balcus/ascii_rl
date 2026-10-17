@@ -1,8 +1,8 @@
 use std::vec;
 
+use rltk::RGB;
 use specs::prelude::*;
 use specs_derive::*;
-use rltk::{RGB};
 
 #[derive(Component)]
 pub struct Position {
@@ -44,27 +44,27 @@ pub struct FieldOfView {
 }
 
 #[derive(Component)]
-pub struct Enemy { }
+pub struct Enemy {}
 
 #[derive(Component)]
-pub struct BlocksTile { }
+pub struct BlocksTile {}
 
 #[derive(Component)]
 pub struct CombatStats {
     pub max_hp: i32,
     pub hp: i32,
     pub defense: i32,
-    pub power: i32
+    pub power: i32,
 }
 
 #[derive(Component, Debug, Clone)]
 pub struct WantsToMelee {
-    pub target : Entity
+    pub target: Entity,
 }
 
 #[derive(Component, Debug)]
 pub struct SufferDamage {
-    pub amount: Vec<i32>
+    pub amount: Vec<i32>,
 }
 
 impl SufferDamage {
@@ -72,7 +72,9 @@ impl SufferDamage {
         if let Some(suffering) = store.get_mut(victim) {
             suffering.amount.push(amount);
         } else {
-            let dmg = SufferDamage { amount: vec![amount]};
+            let dmg = SufferDamage {
+                amount: vec![amount],
+            };
             store.insert(victim, dmg).expect("Failed to insert damage!");
         }
     }

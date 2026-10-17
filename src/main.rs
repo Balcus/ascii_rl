@@ -9,9 +9,16 @@ const WINDOW_SIZE: (usize, usize) = (80, 50);
 
 use crate::{
     components::{
-        BlocksTile, CombatStats, Enemy, FieldOfView, LeftMover, Player, Position, RandomMover, Renderable, SufferDamage, WantsToMelee,
-    }, map::Map, player::handle_player_input, systems::{
-        enemy_ai_system::EnemyAI, map_indexing_system::MapIndexingSystem,
+        BlocksTile, CombatStats, Enemy, FieldOfView, LeftMover, Player, Position, RandomMover,
+        Renderable, SufferDamage, WantsToMelee,
+    },
+    map::Map,
+    player::handle_player_input,
+    systems::{
+        damage_system::{self, DamageSystem},
+        enemy_ai_system::EnemyAI,
+        map_indexing_system::MapIndexingSystem,
+        melee_combat_system::MeleeCombatSystem,
         visibility_system::VisibilitySystem,
     },
 };
@@ -20,23 +27,30 @@ use specs::prelude::*;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum RunState {
-    Paused,
-    Running,
+    AwaitingInput,
+    PreRun,
+    PlayerTurn,
+    MonsterTurn,
+    GameOver,
 }
 
 struct State {
     pub ecs: World,
-    pub run_state: RunState,
 }
 
 impl State {
     fn run_systems(&mut self) {
         let mut vs = VisibilitySystem {};
         vs.run_now(&self.ecs);
-        let mut map_indexing_system = MapIndexingSystem {};
-        map_indexing_system.run_now(&self.ecs);
         let mut mob = EnemyAI {};
         mob.run_now(&self.ecs);
+        let mut map_indexing_system = MapIndexingSystem {};
+        map_indexing_system.run_now(&self.ecs);
+        let mut melee_combat_system = MeleeCombatSystem {};
+        melee_combat_system.run_now(&self.ecs);
+        let mut damage_system = DamageSystem {};
+        damage_system.run_now(&self.ecs);
+
         self.ecs.maintain();
     }
 }
@@ -44,16 +58,37 @@ impl State {
 impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
         ctx.cls();
-
-        match self.run_state {
-            RunState::Paused => {
-                self.run_state = handle_player_input(self, ctx);
-            }
-            RunState::Running => {
-                self.run_systems();
-                self.run_state = RunState::Paused;
-            }
+        let mut newrunstate;
+        {
+            let runstate = self.ecs.fetch::<RunState>();
+            newrunstate = *runstate
         }
+
+        match newrunstate {
+            RunState::AwaitingInput => {
+                newrunstate = handle_player_input(self, ctx);
+            }
+            RunState::PreRun => {
+                self.run_systems();
+                newrunstate = RunState::AwaitingInput;
+            }
+            RunState::PlayerTurn => {
+                self.run_systems();
+                newrunstate = RunState::MonsterTurn;
+            }
+            RunState::MonsterTurn => {
+                self.run_systems();
+                newrunstate = RunState::AwaitingInput;
+            }
+            RunState::GameOver => {}
+        }
+
+        {
+            let mut runwriter = self.ecs.write_resource::<RunState>();
+            *runwriter = newrunstate;
+        }
+
+        damage_system::delete_the_dead(&mut self.ecs);
 
         Map::draw_map(&self.ecs, ctx);
 
@@ -77,10 +112,7 @@ fn main() -> rltk::BError {
         .build()?;
     context.with_post_scanlines(true);
 
-    let mut gs = State {
-        ecs: World::new(),
-        run_state: RunState::Running,
-    };
+    let mut gs = State { ecs: World::new() };
 
     gs.ecs.register::<Position>();
     gs.ecs.register::<Renderable>();
@@ -117,16 +149,14 @@ fn main() -> rltk::BError {
                 max_hp: 10,
                 hp: 10,
                 defense: 1,
-                power: 2
+                power: 5,
             })
             .build();
     }
 
     let (player_x, player_y) = map.rooms[0].center();
-    gs.ecs.insert(map);
-    gs.ecs.insert(rltk::Point::new(player_x, player_y));
-
-    gs.ecs
+    let player_entity = gs
+        .ecs
         .create_entity()
         .with(Position {
             x: player_x,
@@ -146,10 +176,14 @@ fn main() -> rltk::BError {
         .with(CombatStats {
             max_hp: 30,
             hp: 30,
-            defense: 3,
-            power: 3
+            defense: 1,
+            power: 3,
         })
         .build();
 
+    gs.ecs.insert(map);
+    gs.ecs.insert(rltk::Point::new(player_x, player_y));
+    gs.ecs.insert(player_entity);
+    gs.ecs.insert(RunState::PreRun);
     rltk::main_loop(context, gs)
 }

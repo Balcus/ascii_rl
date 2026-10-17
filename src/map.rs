@@ -21,7 +21,7 @@ pub struct Map {
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
     pub blocked: Vec<bool>,
-    pub tile_content: Vec<Vec<Entity>>
+    pub tile_content: Vec<Vec<Entity>>,
 }
 
 impl Map {
@@ -38,7 +38,7 @@ impl Map {
             revealed_tiles: vec![false; WINDOW_SIZE.0 * WINDOW_SIZE.1],
             visible_tiles: vec![false; WINDOW_SIZE.0 * WINDOW_SIZE.1],
             blocked: vec![false; WINDOW_SIZE.0 * WINDOW_SIZE.1],
-            tile_content: vec![Vec::new(); WINDOW_SIZE.0 * WINDOW_SIZE.1]
+            tile_content: vec![Vec::new(); WINDOW_SIZE.0 * WINDOW_SIZE.1],
         };
 
         const MAX_ROOMS: i32 = 30;
@@ -216,16 +216,16 @@ impl BaseMap for Map {
 
         // diagnoal movement
         if self.is_exit_valid(x - 1, y - 1) {
-            exits.push((idx - 1, 1.0))
-        };
-        if self.is_exit_valid(x + 1, y + 1) {
-            exits.push((idx + 1, 1.0))
+            exits.push((idx - w - 1, 1.45))
         };
         if self.is_exit_valid(x + 1, y - 1) {
-            exits.push((idx - w, 1.0))
+            exits.push((idx - w + 1, 1.45))
         };
         if self.is_exit_valid(x - 1, y + 1) {
-            exits.push((idx + w, 1.0))
+            exits.push((idx + w - 1, 1.45))
+        };
+        if self.is_exit_valid(x + 1, y + 1) {
+            exits.push((idx + w + 1, 1.45))
         };
 
         exits
